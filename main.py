@@ -20,7 +20,6 @@ def main():
 
     conversations = []
     if ENABLE_GPT:
-        gpt.initialize_gpt(API_KEY)
         if ENABLE_DEBUG_TRANSCRIPT:
             conversations = gpt.initialize_system_prompt(SYSTEM_PROMPT, DEBUG_TRANSCRIPT_PATH)
         else:
@@ -30,13 +29,13 @@ def main():
 
     if CUSTOM_QUERIES:
         print("Using Custom Queries")
-        gpt.process_user_input(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversations, MAX_TOKENS)
+        gpt.process_user_input(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversations, MAX_TOKENS, API_KEY)
     else:
         print("Processing Questions")
         questions = formprocessing.read_questions_from_file(FORM_PATH)
         answers = []
         for question in questions:
-            answer = gpt.process_form_query(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversations, question)
+            answer = gpt.process_form_query(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversations, question, API_KEY)
             answers.append(answer)
         formprocessing.write_answers_to_file(answers)
         print("Completed Processing")

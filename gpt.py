@@ -1,13 +1,6 @@
-import openai
+from openai import OpenAI
 
-def initialize_gpt(API_KEY):
-    """
-    Initializes the OpenAI API key for accessing the Chat API.
-
-    Args:
-    - API_KEY (str): The API key for accessing the OpenAI API.
-    """
-    openai.api_key = API_KEY
+global client
 
 def initialize_system_prompt(SYSTEM_PROMPT, TRANSCRIPT_PATH):
     """
@@ -30,7 +23,7 @@ def initialize_system_prompt(SYSTEM_PROMPT, TRANSCRIPT_PATH):
     conversations.append({'role': 'system', 'content': transcript})
     return conversations
 
-def new_entry(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversation_log):
+def new_entry(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversation_log, API_KEY):
     """
     Performs conversation completion using OpenAI's Chat API.
 
@@ -44,7 +37,12 @@ def new_entry(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversation_log):
     - tokens (int): The total number of tokens used in the API response.
     - conversation_log (list): The updated conversation log with the new response appended.
     """
-    response = openai.ChatCompletion.create(
+    
+    client = OpenAI(
+        api_key = API_KEY
+    )
+
+    response = client.chat.completions.create(
         model=MODEL_ID,
         temperature=TEMPERATURE,
         presence_penalty=PRESENCE_PENALTY,
@@ -56,10 +54,10 @@ def new_entry(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversation_log):
         'content': response.choices[0].message.content.strip()
     })
     
-    tokens = response.usage['total_tokens']
+    tokens = response.usage.total_tokens
     return tokens, conversation_log
 
-def process_user_input(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversations, MAX_TOKENS):
+def process_user_input(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversations, MAX_TOKENS, API_KEY):
     """
     Processes user input and generates responses using the Chat API.
 
@@ -83,7 +81,7 @@ def process_user_input(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversations, M
             break
 
         conversations.append({'role': 'user', 'content': prompt})
-        tokens, conversations = new_entry(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversations)
+        tokens, conversations = new_entry(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversations, API_KEY)
         total_tokens += tokens
         print()
 
@@ -95,18 +93,17 @@ def process_user_input(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversations, M
         else:
             print("You have processed the maximum number of tokens.")
 
-def process_form_query(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversations, question):
+def process_form_query(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversations, question, API_KEY):
     conversations.append({'role': 'user', 'content': question})
-    tokens, conversations = new_entry(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversations)
+    tokens, conversations = new_entry(MODEL_ID, TEMPERATURE, PRESENCE_PENALTY, conversations, API_KEY)
     return f"{question} {conversations[-1]['content'].strip()}\n"
 
 if __name__ == '__main__':
     conversations = []
     api_key = input("API KEY: ")
-    initialize_gpt(api_key)
     initialize_system_prompt("""You are WhichDoctor AI, a medical assistant for a doctor processing inbound patients. Your goal is to help process the conversation and fill out the provided form queries.
     - The dialogue you are provided will consist of a conversation between a doctor and a patient. 
     - You will take this information provided and fill out the following form and write "N/A" if you do not have information to factually fill out any information.
     - The questions will be provided individually and you will answer one at a time.
-    - You will only answer the question and not write anything else. If you need more information or can not give a factual answer, write "N/A".""", 'debug_examples/sample_transcript_2')
-    process_user_input(conversations, 4096, "gpt-3.5-turbo", 0.2)
+    - You will only answer the question and not write anything else. If you need more information or can not give a factual answer, write "N/A".""", 'debug_examples/sample_transcript_2.txt')
+    process_user_input("gpt-3.5-turbo", 0.2, -0.2, conversations, 4096, api_key)
